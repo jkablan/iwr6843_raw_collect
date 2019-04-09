@@ -13,4 +13,5 @@
 	<templateProperties value="id=multi_gesture_68xx_dss.projectspec.multi_gesture_68xx_dss,type=rtsc,products=com.ti.rtsc.SYSBIOS:6.73.01.01;com.ti.MMWAVE_SDK:3.1.1.02;,xdcToolsVersion=3.50.08.24_core,target=ti.targets.elf.C674,platform=ti.platforms.c6x:IWR68XX:false:600,endianness=little,output_format=elf,buildProfile=release,configuroOptions=--compileOptions &quot;--enum_type=int &quot; "/>
 	<origin value="C:\ti\mmwave_industrial_toolbox_3_2_0\labs\lab0023_multi_gesture_and_motion_det_68xx\src\multi_gesture_68xx_dss.projectspec"/>
 	<filesToOpen value=""/>
+	<isTargetManual value="true"/>
 </projectOptions>

@@ -1,6 +1,14 @@
 eclipse.preferences.version=1
 encoding//Debug/common/subdir_rules.mk=UTF-8
 encoding//Debug/common/subdir_vars.mk=UTF-8
+encoding//Debug/dss/cbuff_src/subdir_rules.mk=UTF-8
+encoding//Debug/dss/cbuff_src/subdir_vars.mk=UTF-8
+encoding//Debug/dss/edma_src/subdir_rules.mk=UTF-8
+encoding//Debug/dss/edma_src/subdir_vars.mk=UTF-8
+encoding//Debug/dss/mmWaveLink_common/subdir_rules.mk=UTF-8
+encoding//Debug/dss/mmWaveLink_common/subdir_vars.mk=UTF-8
+encoding//Debug/dss/mmWaveLink_control/subdir_rules.mk=UTF-8
+encoding//Debug/dss/mmWaveLink_control/subdir_vars.mk=UTF-8
 encoding//Debug/dss/subdir_rules.mk=UTF-8
 encoding//Debug/dss/subdir_vars.mk=UTF-8
 encoding//Debug/makefile=UTF-8

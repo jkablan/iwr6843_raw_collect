@@ -165,7 +165,7 @@ int32_t MmwDemo_LVDSStreamInit (void)
     initCfg.crcEnable                 = 1U;
     /* Up to 1 SW session + 1 HW session can be configured for each subframe. Therefore max session is 2. */
     initCfg.maxSessions               = 2U;
-    initCfg.enableDebugMode           = false;
+    initCfg.enableDebugMode           = true;
     initCfg.interface                 = CBUFF_Interface_LVDS;
     initCfg.outputDataFmt             = CBUFF_OutputDataFmt_16bit;
     initCfg.u.lvdsCfg.crcEnable       = 0U;
@@ -309,7 +309,7 @@ exit:
  *  @retval
  *      Error   -   <0
  */
-static int32_t MmwDemo_LVDSStream_EDMAAllocateCBUFFSwChannel
+int32_t MmwDemo_LVDSStream_EDMAAllocateCBUFFSwChannel
 (
     CBUFF_EDMAInfo*         ptrEDMAInfo,
     CBUFF_EDMAChannelCfg*   ptrEDMACfg
@@ -402,7 +402,7 @@ exit:
  *  @retval
  *      Not applicable
  */
-static void MmwDemo_LVDSStream_EDMAFreeCBUFFSwChannel (CBUFF_EDMAChannelCfg* ptrEDMACfg)
+ void MmwDemo_LVDSStream_EDMAFreeCBUFFSwChannel (CBUFF_EDMAChannelCfg* ptrEDMACfg)
 {
     uint8_t    index;
     MmwDemo_LVDSStream_MCB_t *streamMCBPtr =  &gMmwDssMCB.lvdsStream;

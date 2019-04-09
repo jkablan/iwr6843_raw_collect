@@ -325,6 +325,7 @@
 #include <ti/sysbios/knl/Event.h>
 #include <ti/sysbios/family/arm/v7a/Pmu.h>
 #include <ti/sysbios/family/arm/v7r/vim/Hwi.h>
+#include <ti/sysbios/hal/Hwi.h>
 
 /* mmWave SDK Include Files: */
 #include <ti/common/sys_common.h>
@@ -1996,6 +1997,7 @@ void _MmwDemo_mssAssert(int32_t expression, const char *file, int32_t line)
  *  @retval
  *      Not Applicable.
  */
+/*
 int main(void)
 {
 	Task_Params     taskParams;
@@ -2003,20 +2005,21 @@ int main(void)
 	SOC_Cfg         socCfg;
 
 
-	/* Initialize the ESM: */
+	// Initialize the ESM:
 	ESM_init(0U); //dont clear errors as TI RTOS does it
 
-	/* Initialize and populate the demo MCB */
+	// Initialize and populate the demo MCB
 	memset((void*)&gMmwMssMCB, 0, sizeof(MmwDemo_MCB));
 
-	/* Initialize the SOC confiugration: */
+	// Initialize the SOC confiugration:
 	memset((void *)&socCfg, 0, sizeof(SOC_Cfg));
 
-	/* Populate the SOC configuration: */
+	// Populate the SOC configuration:
 	socCfg.clockCfg = SOC_SysClock_INIT;
 
-	/* Initialize the SOC Module: This is done as soon as the application is started
-	 * to ensure that the MPU is correctly configured. */
+
+	// Initialize the SOC Module: This is done as soon as the application is started
+	// to ensure that the MPU is correctly configured.
 	gMmwMssMCB.socHandle = SOC_init(&socCfg, &errCode);
 	if (gMmwMssMCB.socHandle == NULL)
 	{
@@ -2024,35 +2027,105 @@ int main(void)
 		return -1;
 	}
 
-	/* Initialize the DEMO configuration: */
+	// Initialize the DEMO configuration:
 	gMmwMssMCB.cfg.sysClockFrequency = MSS_SYS_VCLK;
 	gMmwMssMCB.cfg.loggingBaudRate = 921600;
 	gMmwMssMCB.cfg.commandBaudRate = 115200;
 
-	/* Check if the SOC is a secure device */
+	// Check if the SOC is a secure device
 	if (SOC_isSecureDevice(gMmwMssMCB.socHandle, &errCode))
 	{
-		/* Disable firewall for JTAG and LOGGER (UART) which is needed by the demo */
+		// Disable firewall for JTAG and LOGGER (UART) which is needed by the demo
 		SOC_controlSecureFirewall(gMmwMssMCB.socHandle,
 			(uint32_t)(SOC_SECURE_FIREWALL_JTAG | SOC_SECURE_FIREWALL_LOGGER),
 			SOC_SECURE_FIREWALL_DISABLE,
 			&errCode);
 	}
 
-	/* Debug Message: */
+	//Debug Message:
 	System_printf("**********************************************\n");
 	System_printf("Debug: Launching the Millimeter Wave Demo\n");
 	System_printf("**********************************************\n");
 
-	/* Initialize the Task Parameters. */
+	// Initialize the Task Parameters.
 	Task_Params_init(&taskParams);
 	taskParams.priority = 3;
 	taskParams.stackSize = 2 * 1024;
 	Task_create(MmwDemo_mssInitTask, &taskParams, NULL);
 
-	/* Start BIOS */
+	// Start BIOS
 	BIOS_start();
 	return 0;
+}
+*/
+
+int main(void)
+{
+    Task_Params     taskParams;
+    int32_t         errCode;
+    SOC_Cfg         socCfg;
+
+
+    // Initialize the ESM:
+    ESM_init(0U); //dont clear errors as TI RTOS does it
+
+    // Initialize and populate the demo MCB
+    memset((void*)&gMmwMssMCB, 0, sizeof(MmwDemo_MCB));
+
+    // Initialize the SOC confiugration:
+    memset((void *)&socCfg, 0, sizeof(SOC_Cfg));
+
+    // Populate the SOC configuration:
+    socCfg.clockCfg = SOC_SysClock_INIT;
+
+
+    // Initialize the SOC Module: This is done as soon as the application is started
+    // to ensure that the MPU is correctly configured.
+    gMmwMssMCB.socHandle = SOC_init(&socCfg, &errCode);
+    if (gMmwMssMCB.socHandle == NULL)
+    {
+        System_printf("Error: SOC Module Initialization failed [Error code %d]\n", errCode);
+        return -1;
+    }
+
+    // Initialize the DEMO configuration:
+    gMmwMssMCB.cfg.sysClockFrequency = MSS_SYS_VCLK;
+    gMmwMssMCB.cfg.loggingBaudRate = 921600;
+    gMmwMssMCB.cfg.commandBaudRate = 115200;
+
+    // Check if the SOC is a secure device
+    if (SOC_isSecureDevice(gMmwMssMCB.socHandle, &errCode))
+    {
+        // Disable firewall for JTAG and LOGGER (UART) which is needed by the demo
+        SOC_controlSecureFirewall(gMmwMssMCB.socHandle,
+            (uint32_t)(SOC_SECURE_FIREWALL_JTAG | SOC_SECURE_FIREWALL_LOGGER),
+            SOC_SECURE_FIREWALL_DISABLE,
+            &errCode);
+    }
+
+    //Debug Message:
+    System_printf("**********************************************\n");
+    System_printf("Debug: Launching the Millimeter Wave Demo\n");
+    System_printf("**********************************************\n");
+
+    //enable interrupts
+    HwiP_enableInterrupt(16);
+    HwiP_enableInterrupt(17);
+    HwiP_enableInterrupt(18);
+    HwiP_enableInterrupt(19);
+    HwiP_enableInterrupt(20);
+    HwiP_enableInterrupt(21);
+
+    HwiP_enableInterrupt(64);
+    HwiP_enableInterrupt(65);
+    HwiP_enableInterrupt(66);
+    HwiP_enableInterrupt(67);
+    HwiP_enableInterrupt(68);
+    HwiP_enableInterrupt(69);
+
+    // Start BIOS
+    BIOS_start();
+    return 0;
 }
 
 

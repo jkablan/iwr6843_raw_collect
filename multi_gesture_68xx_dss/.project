@@ -25,4 +25,26 @@
 		<nature>org.eclipse.cdt.core.ccnature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>dss/cbuff_src</name>
+			<type>2</type>
+			<location>C:/ti/mmwave_sdk_03_01_01_02/packages/ti/drivers/cbuff/src</location>
+		</link>
+		<link>
+			<name>dss/edma_src</name>
+			<type>2</type>
+			<location>C:/ti/mmwave_sdk_03_01_01_02/packages/ti/drivers/edma/src</location>
+		</link>
+		<link>
+			<name>dss/mmWaveLink_common</name>
+			<type>2</type>
+			<location>C:/ti/mmwave_sdk_03_01_01_02/packages/ti/control/mmwavelink/test/common</location>
+		</link>
+		<link>
+			<name>dss/mmWaveLink_control</name>
+			<type>2</type>
+			<location>C:/ti/mmwave_sdk_03_01_01_02/packages/ti/control/mmwavelink/src</location>
+		</link>
+	</linkedResources>
 </projectDescription>

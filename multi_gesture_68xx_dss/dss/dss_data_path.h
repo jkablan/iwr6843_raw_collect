@@ -674,6 +674,10 @@ extern "C" {
 	 */
 	void MmwDemo_dssDataPathStartCQEdma(MmwDemo_DSS_DataPathObj *ptrDataPathObj);
 
+	void MmwDemo_edmaErrorCallbackFxn(EDMA_Handle handle, EDMA_errorInfo_t *errorInfo);
+	void MmwDemo_edmaTransferControllerErrorCallbackFxn(EDMA_Handle handle,EDMA_transferControllerErrorInfo_t *errorInfo);
+
+
 #ifdef __cplusplus
 }
 #endif

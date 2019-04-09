@@ -158,7 +158,8 @@ int32_t MmwDemo_LVDSStreamHwConfig(MmwDemo_DSS_DataPathObj *datPathObj);
 int32_t MmwDemo_LVDSStreamSwConfig(MmwDemo_DSS_DataPathObj *datPathObj);
 void MmwDemo_LVDSStreamDeleteHwSession(CBUFF_SessionHandle sessionHandle);
 void MmwDemo_LVDSStreamDeleteSwSession(CBUFF_SessionHandle sessionHandle);
-
+int32_t MmwDemo_LVDSStream_EDMAAllocateCBUFFSwChannel(CBUFF_EDMAInfo*         ptrEDMAInfo, CBUFF_EDMAChannelCfg*   ptrEDMACfg);
+void MmwDemo_LVDSStream_EDMAFreeCBUFFSwChannel (CBUFF_EDMAChannelCfg* ptrEDMACfg);
 
 /**
 @}

@@ -81,6 +81,7 @@
 #include <dss_data_path.h>
 #include <mmw_messages.h>
 #include <dss_lvds_stream.h>
+#include <dss_resources.h>
 /* C674x mathlib */
 /* Suppress the mathlib.h warnings
  *  #48-D: incompatible redefinition of macro "TRUE"
@@ -94,6 +95,12 @@
  /* Related to linker copy table for copying from L3 to L1PSRAM for example */
 #include <cpy_tbl.h>
 #include <gesture.h>
+
+#include<dss_lvds_stream.h>
+#include<cbuff_internal.h>
+//#include <ti/drivers/cbuff/include/cbuff_internal.h>
+#include<edma_xwr1xxx.h>
+
 /* These address offsets are in bytes, when configure address offset in hardware,
    these values will be converted to number of 128bits
    Buffer at offset 0x0U is reserved by BSS, hence offset starts from 0x800
@@ -231,6 +238,83 @@ static int32_t MmwDemo_dssSendProcessOutputToMSS
 	MmwDemo_DSS_DataPathObj   *obj
 	);
 void MmwDemo_dssDataPathOutputLogging(MmwDemo_DSS_DataPathObj   * dataPathObj);
+
+extern int32_t MmwaveLink_setHsiClk(void);
+extern int32_t MmwaveLink_getRfBootupStatus(void);
+extern int32_t MmwaveLink_getVersion(void);
+extern int32_t MmwaveLink_initLink(rlUInt8_t deviceType, rlUInt8_t platform);
+extern int32_t MmwaveLink_setAdcOutConfig(void);
+extern int32_t MmwaveLink_setChannelConfig(void);
+extern int32_t MmwaveLink_setHsiClk(void);
+extern int32_t MmwaveLink_setRfDevCfg(rlUInt32_t dirData);
+
+volatile uint32_t gLinkFrameCnt = 0U;
+const rlDevHsiClk_t deviceHsiClk =
+{
+    .hsiClk = 9,
+    .reserved = 0x0,
+};
+
+/* Rx Channel Configuration */
+#define RX_CHANNEL_1_ENABLE                 (1U << 0U)
+#define RX_CHANNEL_2_ENABLE                 (1U << 1U)
+#define RX_CHANNEL_3_ENABLE                 (1U << 2U)
+#define RX_CHANNEL_4_ENABLE                 (1U << 3U)
+#define RX_CHANNEL_1_2_ENABLE               (RX_CHANNEL_1_ENABLE | RX_CHANNEL_2_ENABLE)
+#define RX_CHANNEL_1_3_ENABLE               (RX_CHANNEL_1_ENABLE | RX_CHANNEL_3_ENABLE)
+#define RX_CHANNEL_1_4_ENABLE               (RX_CHANNEL_1_ENABLE | RX_CHANNEL_4_ENABLE)
+#define RX_CHANNEL_2_3_ENABLE               (RX_CHANNEL_2_ENABLE | RX_CHANNEL_3_ENABLE)
+#define RX_CHANNEL_2_4_ENABLE               (RX_CHANNEL_2_ENABLE | RX_CHANNEL_4_ENABLE)
+#define RX_CHANNEL_3_4_ENABLE               (RX_CHANNEL_3_ENABLE | RX_CHANNEL_4_ENABLE)
+#define RX_CHANNEL_1_2_3_ENABLE             (RX_CHANNEL_1_ENABLE | RX_CHANNEL_2_ENABLE | RX_CHANNEL_3_ENABLE)
+#define RX_CHANNEL_2_3_4_ENABLE             (RX_CHANNEL_2_ENABLE | RX_CHANNEL_3_ENABLE | RX_CHANNEL_4_ENABLE)
+#define RX_CHANNEL_1_3_4_ENABLE             (RX_CHANNEL_1_ENABLE | RX_CHANNEL_3_ENABLE | RX_CHANNEL_4_ENABLE)
+#define RX_CHANNEL_1_2_3_4_ENABLE           (RX_CHANNEL_1_ENABLE | RX_CHANNEL_2_ENABLE | RX_CHANNEL_3_ENABLE | RX_CHANNEL_4_ENABLE)
+
+/* Tx Channel Configuration */
+#define TX_CHANNEL_1_ENABLE                 (1U << 0U)
+#define TX_CHANNEL_2_ENABLE                 (1U << 1U)
+#define TX_CHANNEL_3_ENABLE                 (1U << 2U)
+#define TX_CHANNEL_1_2_ENABLE               (TX_CHANNEL_1_ENABLE | TX_CHANNEL_2_ENABLE)
+#define TX_CHANNEL_2_3_ENABLE               (TX_CHANNEL_2_ENABLE | TX_CHANNEL_3_ENABLE)
+#define TX_CHANNEL_1_3_ENABLE               (TX_CHANNEL_1_ENABLE | TX_CHANNEL_3_ENABLE)
+#define TX_CHANNEL_1_2_3_ENABLE             (TX_CHANNEL_1_ENABLE | TX_CHANNEL_2_ENABLE | TX_CHANNEL_3_ENABLE)
+
+
+const rlChanCfg_t chCfg  =
+{
+    .rxChannelEn = RX_CHANNEL_1_2_3_4_ENABLE,
+    .txChannelEn = TX_CHANNEL_1_2_3_ENABLE,
+    .cascading   = 0x0,
+    .cascadingPinoutCfg   = 0x0,
+};
+
+/* ADC Config Settings */
+#define ADC_BITS_12                         (0U)
+#define ADC_BITS_14                         (1U)
+#define ADC_BITS_16                         (2U)
+
+#define ADC_FORMAT_REAL                     (0U)
+#define ADC_FORMAT_COMPLEX                  (1U)
+#define ADC_FORMAT_CPMLEX_WITH_IMG_BAND     (2U)
+
+#define ADC_I_FIRST                         (0U)
+#define ADC_Q_FIRST                         (1U)
+
+#define ADC_INTERLEAVED_MODE                (0U)
+#define ADC_NON_INTERLEAVED_MODE            (1U)
+
+
+const rlAdcOutCfg_t adcOutCfgArgs =
+{
+    .fmt.b2AdcBits = ADC_BITS_16,
+    .fmt.b2AdcOutFmt = ADC_FORMAT_CPMLEX_WITH_IMG_BAND,
+    .fmt.b8FullScaleReducFctr = 0U,
+    .reserved0  = 0x0,
+    .reserved1  = 0x0,
+};
+
+
 
 /**************************************************************************
  *************************** MmwDemo DSS Functions **************************
@@ -2697,6 +2781,7 @@ static void MmwDemo_dssInitTask(UArg arg0, UArg arg1)
 	Error_Block         eb;
 	MmwDemo_message     message;
 
+	MmwaveLink_setupEventCombiner();
 	/* Initialize the Mailbox */
 	Mailbox_init(MAILBOX_TYPE_DSS);
 
@@ -2924,23 +3009,24 @@ void MmwDemo_measurementResultOutput(MmwDemo_DSS_DataPathObj *obj)
  *  @retval
  *      Not Applicable.
  */
+/*
 int main(void)
 {
 	Task_Params    taskParams;
 	SOC_Cfg        socCfg;
 	int32_t        errCode;
 
-	/* Initialize and populate the demo MCB */
+	// Initialize and populate the demo MCB
 	memset((void*)&gMmwDssMCB, 0, sizeof(MmwDemo_DSS_MCB));
 
-	/* Initialize the SOC confiugration: */
+	// Initialize the SOC confiugration:
 	memset((void *)&socCfg, 0, sizeof(SOC_Cfg));
 
-	/* Populate the SOC configuration: */
+	// Populate the SOC configuration:
 	socCfg.clockCfg = SOC_SysClock_BYPASS_INIT;
 
-	/* Initialize the SOC Module: This is done as soon as the application is started
-	 * to ensure that the MPU is correctly configured. */
+	// Initialize the SOC Module: This is done as soon as the application is started
+	// to ensure that the MPU is correctly configured.
 	gMmwDssMCB.socHandle = SOC_init(&socCfg, &errCode);
 	if (gMmwDssMCB.socHandle == NULL)
 	{
@@ -2948,19 +3034,473 @@ int main(void)
 		return -1;
 	}
 
-	/* Initialize the DEMO configuration: */
+	// Initialize the DEMO configuration:
 	gMmwDssMCB.cfg.sysClockFrequency = DSS_SYS_VCLK;
 	gMmwDssMCB.cfg.loggingBaudRate = 921600;
 
 	Cycleprofiler_init();
 
-	/* Initialize the Task Parameters. */
+	// Initialize the Task Parameters.
 	Task_Params_init(&taskParams);
 	taskParams.stackSize = 3 * 1024;
 	Task_create(MmwDemo_dssInitTask, &taskParams, NULL);
 
-	/* Start BIOS */
+	// Start BIOS
 	BIOS_start();
 	return 0;
 }
+*/
 
+CBUFF_SessionHandle cbuffSession;
+
+#pragma DATA_SECTION(data,"L3SRAM")
+#pragma DATA_ALIGN(data,2)
+
+#define DATA_SIZE_BYTES 2048
+#define DATA_SIZE_CBUFF_UNITS 1024
+
+uint8_t data[DATA_SIZE_BYTES];
+
+CBUFF_SessionCfg sCfg;
+CBUFF_SessionHandle sHndl = NULL;
+
+EDMA_Handle edmaHandles[EDMA_NUM_CC];
+
+Bool isInit = FALSE;
+Bool isInitValid = FALSE;
+void clock0_handler(UArg arg)
+{
+
+    Event_post(event_tick, 0x01);
+
+}
+
+uint8_t frameCompleteCnt = 0;
+void frameDoneCallback(CBUFF_SessionHandle sessionHandle)
+{
+    frameCompleteCnt++;
+}
+
+static void MmwaveLink_setupEventCombiner (void)
+{
+    Hwi_Params  params;
+    uint32_t    i;
+
+    Hwi_Params_init(&params);
+    params.enableInt = TRUE;
+    for (i = 0; i < 4; i++)
+    {
+        params.arg      = i;
+        params.eventId  = i;
+        if (Hwi_create(4 + i, &EventCombiner_dispatch, &params, NULL) == NULL)
+        {
+            System_printf("failed to create Hwi interrupt %d\n",4 + i);
+        }
+    }
+    return;
+}
+
+static void hsiWriteTask(UArg arg0, UArg arg1)
+{
+    int32_t                   errCode;
+    System_printf("starting hsiWriteTask\n");
+
+    // SETUP THE DATA BUFFER
+    int idx;
+    for(idx = 0; idx < DATA_SIZE_BYTES; idx++)
+    {
+        data[idx] = (uint8_t)idx;
+    }
+
+    // --------------------------- SETUP MAILBOX ------------------------- //
+    /* Initialize the Mailbox */
+    Mailbox_init(MAILBOX_TYPE_DSS);
+
+
+    // --------------------------- STARTUP MMWAVE LINK ---------------------------------------//
+    // Setup and initialize the mmWave Link:
+    System_printf("Starting MmwaveLink_initLink ", errCode);
+    if (MmwaveLink_initLink(RL_AR_DEVICETYPE_68XX, RL_PLATFORM_DSS) < 0)
+    {
+        System_printf("MmwaveLink_initLink failed", errCode);
+        return;
+    }
+
+    /*
+    //check the RF front end bood status
+    if (MmwaveLink_getRfBootupStatus () < 0)
+      {
+         System_printf("MmwaveLink_getRfBootupStatus failed", errCode);
+          return;
+      }
+*/
+
+    // Get mmWave Link Version:
+    if(MmwaveLink_getVersion() < 0)
+    {
+        System_printf("MmwaveLink_getVersion failed", errCode);
+        return;
+    }
+
+    // Set mmWave Link Channel Configuration to the BSS
+    if (MmwaveLink_setChannelConfig() < 0)
+    {
+        System_printf("MmwaveLink_setChannelConfig failed", errCode);
+        return;
+    }
+
+
+    //Set mmWave Link ADC Out Configuration to the BSS
+    if (MmwaveLink_setAdcOutConfig() < 0)
+    {
+        System_printf("MmwaveLink_setAdcOutConfig failed", errCode);
+        return;
+    }
+
+    // mmWave Link set Async event configuration
+    if (MmwaveLink_setRfDevCfg(0xA) < 0)
+    {
+        System_printf("MmwaveLink_setRfDevCfg failed", errCode);
+        return;
+    }
+
+    // Set device HSI clock
+    if (MmwaveLink_setHsiClk() < 0)
+    {
+        System_printf("MmwaveLink_setHsiClk failed", errCode);
+        return;
+    }
+    System_printf("MMW Subsystem sucessfully started", errCode);
+
+
+
+
+    // SETUP THE LVDS SUBSYSTEM
+    isInit = TRUE;
+
+    int result = MmwDemo_LVDSStreamInit();
+
+    CBUFF_DriverMCB * drvr = (CBUFF_DriverMCB *) &gMmwDssMCB.lvdsStream.cbuffHandle;
+    drvr->totalNumChirpDone = 0;
+    drvr->totalNumErrorInterrupts = 0;
+    drvr->totalNumFrameDone = 0;
+    drvr->totalNumFrameStart = 0;
+    drvr->totalNumNonActiveSessionInterrupts = 0;
+
+    Task_sleep(500);
+
+    if(result < 0)
+    {
+        System_printf("MmwDemo_LVDSStreamInit failed\n");
+        goto catch;
+    }else
+    {
+        System_printf("MmwDemo_LVDSStreamInit passed\n");
+    }
+
+    // GET EDMA HANDLES
+    uint8_t numInstances = EDMA_getNumInstances();
+
+    /* Initialize the edma instance to be tested */
+    int instanceId;
+    EDMA_instanceInfo_t instanceInfo;
+    EDMA_errorConfig_t errorConfig;
+
+    for (instanceId = 0; instanceId < numInstances; instanceId++) {
+        EDMA_init(instanceId);
+
+        EDMA_Handle handle = EDMA_open(instanceId, &errCode, &instanceInfo);
+        if (handle == NULL)
+        {
+            System_printf("Error: Unable to open the edma Instance, errCode = %d\n", errCode);
+            goto catch;
+        }
+        edmaHandles[instanceId] = handle;
+
+        errorConfig.isConfigAllEventQueues = true;
+        errorConfig.isConfigAllTransferControllers = true;
+        errorConfig.isEventQueueThresholdingEnabled = true;
+        errorConfig.eventQueueThreshold = EDMA_EVENT_QUEUE_THRESHOLD_MAX;
+        errorConfig.isEnableAllTransferControllerErrors = true;
+        errorConfig.callbackFxn = MmwDemo_edmaErrorCallbackFxn;
+        errorConfig.transferControllerCallbackFxn = MmwDemo_edmaTransferControllerErrorCallbackFxn;
+        if ((errCode = EDMA_configErrorMonitoring(handle, &errorConfig)) != EDMA_NO_ERROR)
+        {
+            System_printf("Debug: EDMA_configErrorMonitoring() failed with errorCode = %d\n", errCode);
+            goto catch;
+        }
+    }
+
+    System_printf("init succeeded\n");
+    isInitValid = TRUE;
+
+    goto finally;
+    catch:
+    System_printf("init failed\n");
+    finally:
+        isInit = TRUE;
+
+    Bool isDeactivateSessionFirst = FALSE;
+
+    while(1)
+    {
+        //Event_pend(event_tick, 0x00, 0x01, BIOS_WAIT_FOREVER );
+        Task_sleep(500);
+
+        if(isInitValid)
+        {
+            System_printf("starting cbuff session, frame completeCnt: %d\n", frameCompleteCnt);
+
+
+
+            // ------ DELETE THE SESSION ------
+            if(sHndl != NULL)
+            {
+            	if(CBUFF_deactivateSession(sHndl, &errCode) < 0)
+				{
+					System_printf("Failed to [DEACTIVATE] CBUFF session for LVDS stream SW. errCode=%d\n", errCode);
+				}
+                if(CBUFF_deleteSession(sHndl, &errCode) < 0)
+                {
+                    System_printf("Failed to [DELETE] CBUFF session for LVDS stream SW. errCode=%d\n", errCode);
+                }
+            }
+
+
+            // ------ CREATE CBUFF SESSION ------
+            memset(&sCfg, 0, sizeof(CBUFF_SessionCfg));
+            sCfg.executionMode = CBUFF_SessionExecuteMode_SW;
+            sCfg.dataType = CBUFF_DataType_COMPLEX;
+            sCfg.edmaHandle = edmaHandles[EDMA_INSTANCE_0];
+            sCfg.allocateEDMAChannelFxn = MmwDemo_LVDSStream_EDMAAllocateCBUFFSwChannel;
+            sCfg.freeEDMAChannelFxn = MmwDemo_LVDSStream_EDMAFreeCBUFFSwChannel;
+            sCfg.dataType = CBUFF_DataType_COMPLEX;
+            sCfg.u.swCfg.userBufferInfo[0].address = (uint32_t)&data;
+            sCfg.u.swCfg.userBufferInfo[0].size = DATA_SIZE_CBUFF_UNITS;
+            sCfg.frameDoneCallbackFxn = &frameDoneCallback;
+            /* Create the SW Session. */
+            sHndl = CBUFF_createSession (gMmwDssMCB.lvdsStream.cbuffHandle, &sCfg, &errCode);
+
+
+            if (sHndl == NULL)
+            {
+                // Error: Unable to create the CBUFF SW session
+                System_printf("Error: MmwDemo_LVDSStream_config unable to create the CBUFF SW session with [Error=%d]\n", errCode);
+                goto catch;
+            }
+
+
+            // If SW LVDS stream is enabled, start the session here. User data will imediatelly start to stream over LVDS.
+            if (CBUFF_activateSession(sHndl, &errCode) < 0)
+            {
+                System_printf("Failed to [activate] CBUFF session for LVDS stream SW. errCode=%d\n", errCode);
+            }
+            isDeactivateSessionFirst = TRUE;
+
+            int idx;
+            for(idx = 0; idx < 6; idx++)
+            {
+                CBUFF_DriverMCB * drvr = (CBUFF_DriverMCB *) &gMmwDssMCB.lvdsStream.cbuffHandle;
+                System_printf("DRIVER STAT: TNC[%d], TNE[%d], TNFD[%d], TNFS[%d], TNNAI[%d]\n", drvr->totalNumChirpDone, drvr->totalNumErrorInterrupts,
+							  drvr->totalNumFrameDone, drvr->totalNumFrameStart, drvr->totalNumNonActiveSessionInterrupts);
+                Task_sleep(500);
+            }
+
+            Task_sleep(500);
+        }
+
+    }
+}
+
+#define EDMA_TEST_DATA_SIZE 32
+#pragma DATA_SECTION(src_data,"L3SRAM")
+uint8_t src_data[EDMA_TEST_DATA_SIZE];
+#pragma DATA_SECTION(dst_data,"L3SRAM")
+uint8_t dst_data[EDMA_TEST_DATA_SIZE];
+int txCompleteCount = 0;
+
+void edmaTxCompleteCallback(uintptr_t arg, uint8_t transferCompletionCode)
+{
+	txCompleteCount++;
+}
+
+
+void edmaTestTask(UArg  arg1, UArg arg2)
+{
+	uint32_t errCode  = 0;
+    System_printf("Running EDMA Test\n", errCode);
+
+    // GET EDMA HANDLES
+    uint8_t numInstances = EDMA_getNumInstances();
+
+    /* Initialize the edma instance to be tested */
+    int instanceId;
+    EDMA_instanceInfo_t instanceInfo;
+    EDMA_errorConfig_t errorConfig;
+
+    /*
+    for (instanceId = 0; instanceId < numInstances; instanceId++) {
+        EDMA_init(instanceId);
+
+        EDMA_Handle handle = EDMA_open(instanceId, &errCode, &instanceInfo);
+        if (handle == NULL)
+        {
+            System_printf("Error: Unable to open the edma Instance, errCode = %d\n", errCode);
+            goto catch;
+        }
+
+
+        edmaHandles[instanceId] = handle;
+
+        errorConfig.isConfigAllEventQueues = true;
+        errorConfig.isConfigAllTransferControllers = true;
+        errorConfig.isEventQueueThresholdingEnabled = true;
+        errorConfig.eventQueueThreshold = EDMA_EVENT_QUEUE_THRESHOLD_MAX;
+        errorConfig.isEnableAllTransferControllerErrors = true;
+        errorConfig.callbackFxn = MmwDemo_edmaErrorCallbackFxn;
+        errorConfig.transferControllerCallbackFxn = MmwDemo_edmaTransferControllerErrorCallbackFxn;
+        if ((errCode = EDMA_configErrorMonitoring(handle, &errorConfig)) != EDMA_NO_ERROR)
+        {
+            System_printf("Debug: EDMA_configErrorMonitoring() failed with errorCode = %d\n", errCode);
+            goto catch;
+        }
+    }*/
+
+    instanceId = 0;
+    EDMA_init(instanceId);
+    EDMA_Handle handle = EDMA_open(instanceId, &errCode, &instanceInfo);
+
+    errorConfig.isConfigAllEventQueues = true;
+    errorConfig.isConfigAllTransferControllers = true;
+    errorConfig.isEventQueueThresholdingEnabled = true;
+    errorConfig.eventQueueThreshold = EDMA_EVENT_QUEUE_THRESHOLD_MAX;
+    errorConfig.isEnableAllTransferControllerErrors = true;
+    errorConfig.callbackFxn = MmwDemo_edmaErrorCallbackFxn;
+    errorConfig.transferControllerCallbackFxn = MmwDemo_edmaTransferControllerErrorCallbackFxn;
+    if ((errCode = EDMA_configErrorMonitoring(handle, &errorConfig)) != EDMA_NO_ERROR)
+    {
+        System_printf("Debug: EDMA_configErrorMonitoring() failed with errorCode = %d\n", errCode);
+        goto catch;
+    }
+
+    if (handle == NULL)
+    {
+        System_printf("Error: Unable to open the edma Instance, errCode = %d\n", errCode);
+        goto catch;
+    }
+
+
+    //init the test data
+    int idx = 0;
+    for(idx = 0; idx < EDMA_TEST_DATA_SIZE; idx++)
+    {
+    	src_data[idx] = idx+1;
+    	dst_data[idx] = 0;
+    }
+
+    EDMA_channelConfig_t    config;
+
+    /* Populate the EDMA Channel configuration: */
+    int chanId = 7;
+    config.channelId                     = chanId;
+    config.channelType                   = (uint8_t)EDMA3_CHANNEL_TYPE_DMA;
+    config.paramId                       = chanId;
+    config.eventQueueId                  = 0;
+    config.transferCompletionCallbackFxn = edmaTxCompleteCallback;
+
+    /* Populate the EDMA Channel Parameter Set Configuration: */
+    config.paramSetConfig.sourceAddress                          = (uint32_t) SOC_translateAddress((uint32_t)&src_data,SOC_TranslateAddr_Dir_TO_EDMA, (int32_t *)&errCode);
+    config.paramSetConfig.destinationAddress                     = (uint32_t) SOC_translateAddress((uint32_t)&dst_data,SOC_TranslateAddr_Dir_TO_EDMA, (int32_t *)&errCode);
+    config.paramSetConfig.aCount                                 = (uint16_t)32;
+    config.paramSetConfig.bCount                                 = (uint16_t)1;
+    config.paramSetConfig.cCount                                 = (uint16_t)1;
+    config.paramSetConfig.bCountReload                           = config.paramSetConfig.bCount;
+    config.paramSetConfig.sourceBindex                           = 0;
+    config.paramSetConfig.destinationBindex                      = 0;
+    config.paramSetConfig.sourceCindex                           = 0;
+    config.paramSetConfig.destinationCindex                      = 0;
+    config.paramSetConfig.linkAddress                            = EDMA_NULL_LINK_ADDRESS;
+    config.paramSetConfig.transferType                           = (uint8_t)EDMA3_SYNC_A;
+    config.paramSetConfig.transferCompletionCode                 = 123;
+    config.paramSetConfig.sourceAddressingMode                   = (uint8_t)EDMA3_ADDRESSING_MODE_LINEAR;
+//    config.paramSetConfig.destinationAddressingMode              = (uint8_t)EDMA3_ADDRESSING_MODE_FIFO_WRAP;
+    config.paramSetConfig.destinationAddressingMode              = (uint8_t)EDMA3_ADDRESSING_MODE_LINEAR;
+    config.paramSetConfig.fifoWidth                              = (uint8_t)EDMA3_FIFO_WIDTH_128BIT;
+    config.paramSetConfig.isStaticSet                            = false;
+    config.paramSetConfig.isEarlyCompletion                      = false;
+    config.paramSetConfig.isFinalTransferInterruptEnabled        = true;
+    config.paramSetConfig.isIntermediateTransferInterruptEnabled = false;
+    config.paramSetConfig.isFinalChainingEnabled                 = false;
+    config.paramSetConfig.isIntermediateChainingEnabled          = false;
+    config.transferCompletionCallbackFxnArg                      = (uintptr_t)NULL;
+
+
+    EDMA_configChannel(handle, &config, true);
+    EDMA_enableChannel(handle, chanId, EDMA3_CHANNEL_TYPE_DMA);
+    Task_sleep(1000);
+    EDMA_startDmaTransfer(handle, chanId);
+
+    while(1)
+    {
+        Task_sleep(2000);
+        System_printf("Tx Complete Count = %d\n", txCompleteCount);
+
+    }
+
+    catch:
+
+    while(1)
+    {
+        Task_sleep(2000);
+        System_printf("ERROR DURRING SETUP\n", txCompleteCount);
+
+    }
+}
+
+
+int main(void)
+{
+    Task_Params    taskParams;
+    SOC_Cfg        socCfg;
+    int32_t        errCode;
+
+    System_printf("DSS Main Start\n", errCode);
+
+    // Initialize and populate the demo MCB
+    memset((void*)&gMmwDssMCB, 0, sizeof(MmwDemo_DSS_MCB));
+
+    // Initialize the SOC confiugration:
+    memset((void *)&socCfg, 0, sizeof(SOC_Cfg));
+
+    // Populate the SOC configuration:
+//    socCfg.clockCfg = SOC_SysClock_BYPASS_INIT;
+    socCfg.clockCfg = SOC_SysClock_INIT;
+
+    /* Initialize the SOC Module: This is done as soon as the application is started
+     * to ensure that the MPU is correctly configured. */
+    gMmwDssMCB.socHandle = SOC_init(&socCfg, &errCode);
+    if (gMmwDssMCB.socHandle == NULL)
+    {
+        System_printf("Error: SOC Module Initialization failed [Error code %d]\n", errCode);
+        return -1;
+    }
+
+    // Initialize the DEMO configuration:
+    gMmwDssMCB.cfg.sysClockFrequency = DSS_SYS_VCLK;
+    gMmwDssMCB.cfg.loggingBaudRate = 921600;
+
+//    Cycleprofiler_init();
+
+
+    // Initialize the Task Parameters.
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = 3 * 1024;
+    Task_create(hsiWriteTask, &taskParams, NULL); //CBUFF Test
+//    Task_create(edmaTestTask,&taskParams, NULL); //EDMA Test
+
+    // Start BIOS
+    System_printf("DSS Running", errCode);
+
+    BIOS_start();
+    return 0;
+}
