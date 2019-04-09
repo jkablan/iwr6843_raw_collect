@@ -6,3 +6,7 @@ multi_gesture_68xx_mss/Debug/
 multi_gesture_68xx_dss/dss/src/
 multi_gesture_68xx_mss/mss/src/
 multi_gesture_68xx_dss/.config/
+DCA1000CollectC/.vs/
+DCA1000CollectC/DCA1000CollectC.vcxproj.filters
+DCA1000CollectC/DCA1000CollectC.vcxproj.user
+DCA1000CollectC/Debug/
